@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from utils import DiceLoss
+from utils import DiceLoss, test_single_volume
 from torchvision import transforms
 
 def trainer_acdc(args, model, snapshot_path):
@@ -28,9 +28,9 @@ def trainer_acdc(args, model, snapshot_path):
     def worker_init_fn(worker_id):
         random.seed(args.seed + worker_id)
     trainloader = DataLoader(db_train, batch_size=batch_size, shuffle=True,
-                             num_workers=8, pin_memory=True, worker_init_fn=worker_init_fn)
+                             num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn)
     valloader = DataLoader(db_val, batch_size=1, shuffle=False,
-                           num_workers=1)
+                           num_workers=0)
     model.train()
     optimizer = optim.SGD(model.parameters(), lr=base_lr,
                           momentum=0.9, weight_decay=0.0001)
@@ -40,7 +40,7 @@ def trainer_acdc(args, model, snapshot_path):
     writer = SummaryWriter(snapshot_path + '/log')
     logging.info("{} iterations per epoch".format(len(trainloader)))
     logging.info("{} val iterations per epoch".format(len(valloader)))
-    logging.info("{} test iterations per epoch".format(len(testloader)))
+   # logging.info("{} test iterations per epoch".format(len(testloader)))
 
     iter_num = 0
     max_epoch = max_iterations // len(trainloader) + 1
