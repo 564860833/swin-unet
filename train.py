@@ -7,6 +7,7 @@ import torch.backends.cudnn as cudnn
 from networks.vision_transformer import SwinUnet as ViT_seg
 from trainer import trainer_synapse
 from config import get_config
+from trainer_acdc import trainer_acdc
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
@@ -98,11 +99,15 @@ if __name__ == "__main__":
     net.load_from(config)
 
     # trainer = {'Synapse': trainer_synapse}
-    trainer_synapse(args, net, args.output_dir)
+    if args.dataset == 'ACDC':
+        trainer_acdc(args, net, args.output_dir)
+    else:
+        # 保持原有逻辑，用于训练 Synapse 或其他数据集
+        trainer_synapse(args, net, args.output_dir)
 
 
 # python test.py --dataset ACDC --cfg configs/swin_tiny_patch4_window7_224_lite.yaml --is_savenii --volume_path /full/path/to/ACDC_ROOT/ACDC_training_volumes  --output_dir ./models --max_epoch 150 --base_lr 0.05 --img_size 224 --batch_size 6
 
-# python train.py --dataset acdc --cfg configs/swin_tiny_patch4_window7_224_lite.yaml --root_path data/ACDC --max_epochs 15 --output_dir models/ACDC  --img_size 224 --base_lr 0.05 --batch_size 6
+# python train.py --dataset ACDC --cfg configs/swin_tiny_patch4_window7_224_lite.yaml --root_path data/ACDC --max_epochs 15 --output_dir models/ACDC  --img_size 224 --base_lr 0.05 --batch_size 6
 
 # python train.py --output_dir ./model_out/datasets --dataset datasets --img_size 224 --batch_size 32 --cfg configs/swin_tiny_patch4_window7_224_lite.yaml --root_path /media/aicvi/11111bdb-a0c7-4342-9791-36af7eb70fc0/NNUNET_OUTPUT/nnunet_preprocessed/Dataset001_mm/nnUNetPlans_2d_split
