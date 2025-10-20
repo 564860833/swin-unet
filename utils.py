@@ -1,3 +1,6 @@
+#DiceLoss类：一种常用于医学图像分割的损失函数，尤其擅长处理类别不平衡问题。
+#calculate_metric_percase函数：计算二值化分割结果的评估指标（Dice系数和HD95）。
+#test_single_volume函数：对单张输入图像（可能是2D或3D）进行分割预测，并评估模型性能。
 import numpy as np
 import torch
 from medpy import metric
