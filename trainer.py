@@ -2,7 +2,7 @@ import logging
 import os
 import random
 import sys
-
+import numpy as np  # <-- 1. 已添加此 import
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,6 +13,29 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from utils import DiceLoss
+from scipy.ndimage.interpolation import zoom
+
+
+# 2. ValGenerator 类 (现在 np 将被正确识别)
+class ValGenerator(object):
+    """
+    一个用于验证集的转换器，只进行缩放和张量转换，不进行随机数据增强。
+    """
+
+    def __init__(self, output_size):
+        self.output_size = output_size
+
+    def __call__(self, sample):
+        image, label = sample['image'], sample['label']
+        x, y = image.shape
+        if x != self.output_size[0] or y != self.output_size[1]:
+            # 使用 order=3 (双三次) 插值处理图像，order=0 (最近邻) 处理标签
+            image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=3)
+            label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+        image = torch.from_numpy(image.astype(np.float32)).unsqueeze(0)
+        label = torch.from_numpy(label.astype(np.float32))
+        sample = {'image': image, 'label': label.long()}
+        return sample
 
 
 def trainer_synapse(args, model, snapshot_path):
@@ -28,9 +51,11 @@ def trainer_synapse(args, model, snapshot_path):
     db_train = Synapse_dataset(base_dir=args.root_path, list_dir=args.list_dir, split="train",
                                transform=transforms.Compose(
                                    [RandomGenerator(output_size=[args.img_size, args.img_size])]))
+
     db_val = Synapse_dataset(base_dir=args.root_path, list_dir=args.list_dir, split="val",
                              transform=transforms.Compose(
-                                 [RandomGenerator(output_size=[args.img_size, args.img_size])]))
+                                 [ValGenerator(output_size=[args.img_size, args.img_size])]))
+
     print("The length of train set is: {}".format(len(db_train)))
 
     def worker_init_fn(worker_id):
