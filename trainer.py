@@ -53,9 +53,17 @@ def trainer_synapse(args, model, snapshot_path):
                                transform=transforms.Compose(
                                    [RandomGenerator(output_size=[args.img_size, args.img_size])]))
 
-    db_val = Synapse_dataset(base_dir=args.root_path, list_dir=args.list_dir, split="val",
+    #正常验证集
+    #db_val = Synapse_dataset(base_dir=args.root_path, list_dir=args.list_dir, split="val",
+    #                        transform=transforms.Compose(
+    #                             [ValGenerator(output_size=[args.img_size, args.img_size])]))
+
+    # 新定义：使用 split="train" 但保持 ValGenerator
+    logging.info("--- 调试模式: 正在使用 'train' 数据集进行验证 ---")
+    db_val = Synapse_dataset(base_dir=args.root_path, list_dir=args.list_dir, split="train",
                              transform=transforms.Compose(
                                  [ValGenerator(output_size=[args.img_size, args.img_size])]))
+    # --- 结束调试 ---
 
     print("The length of train set is: {}".format(len(db_train)))
 
@@ -73,7 +81,7 @@ def trainer_synapse(args, model, snapshot_path):
     model.train()
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_classes)
-    optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.05)
+    optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
     writer = SummaryWriter(snapshot_path + '/log')
     iter_num = 0
     max_epoch = args.max_epochs
