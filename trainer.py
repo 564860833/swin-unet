@@ -11,6 +11,7 @@ from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
+import json
 
 from utils import DiceLoss
 from scipy.ndimage.interpolation import zoom
@@ -78,6 +79,10 @@ def trainer_synapse(args, model, snapshot_path):
     max_epoch = args.max_epochs
     max_iterations = args.max_epochs * len(train_loader)  # max_epoch = max_iterations // len(trainloader) + 1
     logging.info("{} iterations per epoch. {} max iterations ".format(len(train_loader), max_iterations))
+    history = {
+        'train_total_loss': [], 'train_ce_loss': [], 'train_dice_loss': [],
+        'val_total_loss': [], 'val_ce_loss': [], 'val_dice_loss': []
+    }
     iterator = tqdm(range(max_epoch), ncols=70)
     best_loss = 10e10
     for epoch_num in iterator:
@@ -121,6 +126,9 @@ def trainer_synapse(args, model, snapshot_path):
         batch_loss = 0.4 * batch_ce_loss + 0.6 * batch_dice_loss
         logging.info('Train epoch: %d : loss : %f, loss_ce: %f, loss_dice: %f' % (
             epoch_num, batch_loss, batch_ce_loss, batch_dice_loss))
+        history['train_total_loss'].append(batch_loss)
+        history['train_ce_loss'].append(batch_ce_loss)
+        history['train_dice_loss'].append(batch_dice_loss)
         if (epoch_num + 1) % args.eval_interval == 0:
             model.eval()
             batch_dice_loss = 0
@@ -141,6 +149,9 @@ def trainer_synapse(args, model, snapshot_path):
                 batch_loss = 0.4 * batch_ce_loss + 0.6 * batch_dice_loss
                 logging.info('Val epoch: %d : loss : %f, loss_ce: %f, loss_dice: %f' % (
                     epoch_num, batch_loss, batch_ce_loss, batch_dice_loss))
+                history['val_total_loss'].append(batch_loss)
+                history['val_ce_loss'].append(batch_ce_loss)
+                history['val_dice_loss'].append(batch_dice_loss)
                 if batch_loss < best_loss:
                     save_mode_path = os.path.join(snapshot_path, 'best_model.pth')
                     torch.save(model.state_dict(), save_mode_path)
@@ -149,6 +160,13 @@ def trainer_synapse(args, model, snapshot_path):
                     save_mode_path = os.path.join(snapshot_path, 'last_model.pth')
                     torch.save(model.state_dict(), save_mode_path)
                 logging.info("save model to {}".format(save_mode_path))
+    loss_history_path = os.path.join(snapshot_path, "training_losses.json")
+    try:
+        with open(loss_history_path, 'w') as f:
+            json.dump(history, f, indent=4)
+        logging.info(f"Loss history saved to {loss_history_path}")
+    except Exception as e:
+        logging.error(f"Failed to save loss history: {e}")
 
     writer.close()
     return "Training Finished!"
